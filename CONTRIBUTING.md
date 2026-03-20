@@ -1,5 +1,6 @@
 # Guia de Contribucion 
 
+Guia oficial: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo
 Esta guía explica como trabajar en tu funcionalidad y enviar un Pull Request al repositorio original.
 
 ---
