@@ -40,6 +40,12 @@ export default function Home() {
           >
             [ UPLOAD API ]
           </button>
+	  <button 
+	    onClick={() => console.log("presionaste el boton", Date.now())}
+	  >
+	    [ FUNCIONALIDAD NUEVA]
+	  </button>
+
         </nav>
       </header>
 
