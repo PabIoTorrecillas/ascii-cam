@@ -74,6 +74,7 @@ export default function AsciiCamera() {
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string>("");
   const [fps, setFps] = useState(0);
+  const [theme, setTheme] = useState<"terminal" | "light" | "amber">("terminal");
   const lastFrameTime = useRef(Date.now());
 
   // Funcion principal del loop de renderizado
