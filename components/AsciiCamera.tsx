@@ -7,10 +7,6 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { imageDataToAscii, CHARSET_STANDARD } from "@/lib/ascii";
 
-// Resolucion del output ASCII
-const ASCII_COLS = 120;
-const ASCII_ROWS = 60;
-
 // ============================================================
 // TODO #1 — EQUIPO 1: Filtro de inversion de colores - HECHO
 // ============================================================
@@ -28,7 +24,7 @@ const ASCII_ROWS = 60;
 // ============================================================
 
 // ============================================================
-// TODO #3 — EQUIPO 3: Guardar captura como imagen PNG
+// TODO #3 — EQUIPO 3: Guardar captura como imagen PNG (COMPLETADO)
 // ============================================================
 // Implementar un boton "[ SAVE PNG ]" que cree un <canvas> temporal,
 // renderice el texto ASCII y lo descargue.
@@ -57,7 +53,16 @@ export default function AsciiCamera() {
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string>("");
   const [fps, setFps] = useState(0);
+  const [theme, setTheme] = useState<"terminal" | "light" | "amber">("terminal");
   const lastFrameTime = useRef(Date.now());
+  const [mounted, setMounted] = useState(false);
+
+  // --- TODO #2: ESTADOS Y REFERENCIAS PARA RESOLUCIÓN ---
+  const [asciiCols, setAsciiCols] = useState<number>(120);
+  const asciiRows = Math.floor(asciiCols / 2); // Mantiene la proporción 2:1
+  
+  // Usamos una referencia para el loop de animación (evita stale closures)
+  const colsRef = useRef<number>(120);
 
   // TODO #1: estado para el filtro de inversión
   const [invert, setInvert] = useState(false);
@@ -84,6 +89,12 @@ export default function AsciiCamera() {
     // TODO #1: se pasa `invert` como quinto argumento
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const ascii = imageDataToAscii(imageData, ASCII_COLS, ASCII_ROWS, CHARSET_STANDARD, invert);
+    // Read the pixels and convert to ASCII using the dynamic ref
+    const currentCols = colsRef.current;
+    const currentRows = Math.floor(currentCols / 2);
+    
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const ascii = imageDataToAscii(imageData, currentCols, currentRows, CHARSET_STANDARD);
     setAsciiOutput(ascii);
 
     // Calcular FPS
@@ -136,14 +147,88 @@ export default function AsciiCamera() {
     setFps(0);
   }, []);
 
-  // Reiniciar el loop cuando cambia `invert` mientras la cámara está activa
-  useEffect(() => {
-    if (!isRunning) return;
-    if (animFrameRef.current) {
-      cancelAnimationFrame(animFrameRef.current);
+  // ============================================================
+  // Implementación TODO #3: Guardar captura como PNG
+  // ============================================================
+  const handleSavePng = useCallback(() => {
+    if (!asciiOutput) return;
+
+    // 1. Crear un canvas temporal
+    const tempCanvas = document.createElement("canvas");
+    const ctx = tempCanvas.getContext("2d");
+    if (!ctx) return;
+
+    // Calculamos las dimensiones
+    const fontSize = 10; 
+    const lineHeight = 10;
+    
+    // Separamos el string ASCII en lineas
+    const lines = asciiOutput.split('\n');
+    
+    // Configuramos el tamaño del canvas basado en el texto
+    tempCanvas.width = lines[0].length * (fontSize * 0.6); 
+    tempCanvas.height = lines.length * lineHeight;
+
+    // 2. Renderizar el fondo y el texto
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+    ctx.fillStyle = "#4ade80"; // verde terminal
+    ctx.font = `${fontSize}px monospace`;
+    ctx.textBaseline = "top";
+
+    // Dibujamos linea por linea
+    lines.forEach((line, index) => {
+      ctx.fillText(line, 0, index * lineHeight);
+    });
+
+    // 3. Convertir a imagen y descargar
+    const dataUrl = tempCanvas.toDataURL("image/png");
+    
+    const link = document.createElement("a");
+    link.download = `ascii-cam-${Date.now()}.png`;
+    link.href = dataUrl;
+    link.click();
+  }, [asciiOutput]);
+  // TODO #3 - Parte de Emilio Sarmiento: Crear el canvas temporal del texto ASCII
+  const createTempCanvasForAscii = useCallback((text: string) => {
+    if (!text) return null;
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    const lines = text.split("\n");
+    const fontSize = 12;
+    const lineHeight = fontSize * 1.2;
+
+    // Calculamos el ancho maximo
+    ctx.font = `${fontSize}px monospace`;
+    let maxWidth = 0;
+    for (const line of lines) {
+      const width = ctx.measureText(line).width;
+      if (width > maxWidth) maxWidth = width;
     }
-    animFrameRef.current = requestAnimationFrame(renderFrame);
-  }, [invert, isRunning, renderFrame]);
+
+    // Ajustamos tamaño del canvas
+    canvas.width = maxWidth + 40; // padding
+    canvas.height = lines.length * lineHeight + 40;
+
+    // Pintar fondo
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Pintar texto
+    ctx.fillStyle = "#4ade80"; // texto verde
+    ctx.font = `${fontSize}px monospace`;
+    ctx.textBaseline = "top";
+
+    lines.forEach((line, i) => {
+      ctx.fillText(line, 20, 20 + i * lineHeight);
+    });
+
+    return canvas;
+  }, []);
 
   // Cleanup al desmontar
   useEffect(() => {
@@ -152,8 +237,30 @@ export default function AsciiCamera() {
     };
   }, [stopCamera]);
 
+  useEffect(() => { setMounted(true); }, []);
+
+  const isTerminal = theme === "terminal";
+  const isAmber    = theme === "amber";
+
+  const themeClass = isTerminal ? "bg-black text-green-400"
+    : isAmber      ? "bg-black text-amber-400"
+    :                "bg-white text-gray-900";
+
+  const borderClass = isTerminal ? "border-green-900"
+    : isAmber       ? "border-amber-900"
+    :                 "border-gray-300";
+
+  const btnBase = isTerminal
+    ? "border border-green-700 bg-green-950 text-green-300 hover:bg-green-900"
+    : isAmber
+    ? "border border-amber-700 bg-amber-950 text-amber-300 hover:bg-amber-900"
+    : "border border-gray-400 bg-gray-100 text-gray-800 hover:bg-gray-200";
+
+  const labelClass = isTerminal ? "text-green-700" : isAmber ? "text-amber-700" : "text-gray-500";
+  const valClass   = isTerminal ? "text-green-500" : isAmber ? "text-amber-400" : "text-gray-700";
+  
   return (
-    <div className="flex flex-col flex-1 p-4 gap-4">
+    <div className={`flex flex-col flex-1 p-4 gap-4 ${themeClass} transition-colors duration-300`}>
       {/* Canvas oculto para procesar frames */}
       <canvas
         ref={canvasRef}
@@ -187,35 +294,63 @@ export default function AsciiCamera() {
           </button>
         )}
 
-        {/* TODO #1: Botón INVERT */}
-        <button
-          onClick={() => setInvert((v) => !v)}
-          className={`px-5 py-2 rounded text-sm border transition-all cursor-pointer ${
-            invert
-              ? "bg-green-400 text-black border-green-300 font-bold"
-              : "bg-transparent text-green-700 border-green-800 hover:border-green-600 hover:text-green-500"
-          }`}
-        >
-          [ INVERT ]
-        </button>
+        {/* TODO #2: Density Slider */}
+        <div className="flex items-center gap-2 border border-green-900 bg-black px-3 py-1.5 rounded">
+          <label htmlFor="density-slider" className="text-xs text-green-600 font-bold">
+            DENSITY:
+          </label>
+          <input
+            id="density-slider"
+            type="range"
+            min="40"
+            max="200"
+            step="10"
+            value={asciiCols}
+            onChange={(e) => {
+              const val = Number(e.target.value);
+              setAsciiCols(val);       // Updates the UI
+              colsRef.current = val;   // Updates the render loop
+            }}
+            className="w-24 cursor-pointer accent-green-500"
+          />
+        </div>
+        {/* TODO #4: Tema */}
+        {mounted && (
+          <button
+            onClick={() => setTheme(t => t === "terminal" ? "light" : t === "light" ? "amber" : "terminal")}
+            className={`px-3 py-1.5 rounded transition-all cursor-pointer ${btnBase}`}
+          >
+            {theme === "terminal" ? "◉ DARK" : theme === "light" ? "☀ LIGHT" : "◈ AMBER"}
+          </button>
+        )}
+  
+        {isRunning && (
+          <button
+            onClick={handleSavePng}
+            className="px-5 py-2 bg-blue-900 hover:bg-blue-800 text-blue-300 border border-blue-600 rounded text-sm transition-all cursor-pointer"
+          >
+            [ SAVE PNG ]
+          </button>
+        )}
 
         {/* Indicadores de estado */}
-        <div className="flex items-center gap-3 text-xs text-green-700">
+        <div className={`flex items-center gap-3 text-xs ${labelClass}`}>
           <span>
             RES:{" "}
             <span className="text-green-500">
-              {ASCII_COLS}×{ASCII_ROWS}
+              {asciiCols}×{asciiRows}
             </span>
+            <span className={valClass}>{ASCII_COLS}×{ASCII_ROWS}</span>
           </span>
           {isRunning && (
             <span>
               FPS:{" "}
-              <span className="text-green-400">{fps}</span>
+              <span className={valClass}>{fps}</span>
             </span>
           )}
           <span>
             CHARSET:{" "}
-            <span className="text-green-500 font-bold">STANDARD</span>
+            <span className={`font-bold ${valClass}`}>STANDARD</span>
           </span>
           {/* TODO #1: indicador visual del modo activo */}
           {invert && (
@@ -226,7 +361,7 @@ export default function AsciiCamera() {
         {isRunning && (
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse inline-block" />
-            <span className="text-xs text-green-600">LIVE</span>
+            <span className={`text-xs ${labelClass}`}>LIVE</span>
           </div>
         )}
       </div>
@@ -239,7 +374,7 @@ export default function AsciiCamera() {
       )}
 
       {/* ASCII Output */}
-      <div className="flex-1 bg-black border border-green-900 rounded overflow-auto relative">
+      <div className={`flex-1 bg-black border rounded overflow-auto relative ${borderClass}`}>
         {!isRunning && !asciiOutput ? (
           <div className="flex items-center justify-center h-full min-h-[300px] text-green-800 text-sm">
             <div className="text-center">
@@ -249,9 +384,12 @@ export default function AsciiCamera() {
             </div>
           </div>
         ) : (
-          <pre className="ascii-output p-2 text-green-400 leading-none">
-            {asciiOutput}
-          </pre>
+      <pre
+        className="ascii-output p-2 leading-none"
+        style={{ color: isTerminal ? "#4ade80" : isAmber ? "#fbbf24" : "#111111" }}
+      >
+        {asciiOutput}
+      </pre>
         )}
       </div>
 
