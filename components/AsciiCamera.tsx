@@ -37,7 +37,7 @@ const ASCII_ROWS = 60;
 // ============================================================
 
 // ============================================================
-// TODO #3 — EQUIPO 3: Guardar captura como imagen PNG
+// TODO #3 — EQUIPO 3: Guardar captura como imagen PNG (COMPLETADO)
 // ============================================================
 // Implementar un boton "[ SAVE PNG ]" que:
 //   1. Cree un <canvas> temporal del tamaño del texto ASCII
@@ -151,6 +151,89 @@ export default function AsciiCamera() {
     setFps(0);
   }, []);
 
+  // ============================================================
+  // Implementación TODO #3: Guardar captura como PNG
+  // ============================================================
+  const handleSavePng = useCallback(() => {
+    if (!asciiOutput) return;
+
+    // 1. Crear un canvas temporal
+    const tempCanvas = document.createElement("canvas");
+    const ctx = tempCanvas.getContext("2d");
+    if (!ctx) return;
+
+    // Calculamos las dimensiones
+    const fontSize = 10; 
+    const lineHeight = 10;
+    
+    // Separamos el string ASCII en lineas
+    const lines = asciiOutput.split('\n');
+    
+    // Configuramos el tamaño del canvas basado en el texto
+    tempCanvas.width = lines[0].length * (fontSize * 0.6); 
+    tempCanvas.height = lines.length * lineHeight;
+
+    // 2. Renderizar el fondo y el texto
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+    ctx.fillStyle = "#4ade80"; // verde terminal
+    ctx.font = `${fontSize}px monospace`;
+    ctx.textBaseline = "top";
+
+    // Dibujamos linea por linea
+    lines.forEach((line, index) => {
+      ctx.fillText(line, 0, index * lineHeight);
+    });
+
+    // 3. Convertir a imagen y descargar
+    const dataUrl = tempCanvas.toDataURL("image/png");
+    
+    const link = document.createElement("a");
+    link.download = `ascii-cam-${Date.now()}.png`;
+    link.href = dataUrl;
+    link.click();
+  }, [asciiOutput]);
+  // TODO #3 - Parte de Emilio Sarmiento: Crear el canvas temporal del texto ASCII
+  const createTempCanvasForAscii = useCallback((text: string) => {
+    if (!text) return null;
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    const lines = text.split("\n");
+    const fontSize = 12;
+    const lineHeight = fontSize * 1.2;
+
+    // Calculamos el ancho maximo
+    ctx.font = `${fontSize}px monospace`;
+    let maxWidth = 0;
+    for (const line of lines) {
+      const width = ctx.measureText(line).width;
+      if (width > maxWidth) maxWidth = width;
+    }
+
+    // Ajustamos tamaño del canvas
+    canvas.width = maxWidth + 40; // padding
+    canvas.height = lines.length * lineHeight + 40;
+
+    // Pintar fondo
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Pintar texto
+    ctx.fillStyle = "#4ade80"; // texto verde
+    ctx.font = `${fontSize}px monospace`;
+    ctx.textBaseline = "top";
+
+    lines.forEach((line, i) => {
+      ctx.fillText(line, 20, 20 + i * lineHeight);
+    });
+
+    return canvas;
+  }, []);
+
   // Cleanup al desmontar
   useEffect(() => {
     return () => {
@@ -225,6 +308,15 @@ export default function AsciiCamera() {
           </button>
         )}
   
+        {isRunning && (
+          <button
+            onClick={handleSavePng}
+            className="px-5 py-2 bg-blue-900 hover:bg-blue-800 text-blue-300 border border-blue-600 rounded text-sm transition-all cursor-pointer"
+          >
+            [ SAVE PNG ]
+          </button>
+        )}
+
         {/* Indicadores de estado */}
         <div className={`flex items-center gap-3 text-xs ${labelClass}`}>
           <span>
