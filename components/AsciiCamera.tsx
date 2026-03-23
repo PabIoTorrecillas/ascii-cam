@@ -81,6 +81,10 @@ export default function AsciiCamera() {
   // Usamos una referencia para el loop de animación (evita stale closures)
   const colsRef = useRef<number>(120);
 
+  // TODO #1: estado para el filtro de inversión de colores
+  const [invert, setInvert] = useState(false);
+  const invertRef = useRef<boolean>(false);
+
   // Funcion principal del loop de renderizado
   const renderFrame = useCallback(() => {
     const video = videoRef.current;
@@ -104,7 +108,8 @@ export default function AsciiCamera() {
     const currentRows = Math.floor(currentCols / 2);
     
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const ascii = imageDataToAscii(imageData, currentCols, currentRows, CHARSET_STANDARD);
+    // TODO #1: se pasa invertRef.current como quinto argumento
+    const ascii = imageDataToAscii(imageData, currentCols, currentRows, CHARSET_STANDARD, invertRef.current);
     setAsciiOutput(ascii);
 
     // Calcular FPS
@@ -324,6 +329,23 @@ export default function AsciiCamera() {
             className="w-24 cursor-pointer accent-green-500"
           />
         </div>
+
+        {/* TODO #1: Botón INVERT */}
+        <button
+          onClick={() => {
+            const next = !invert;
+            setInvert(next);
+            invertRef.current = next;
+          }}
+          className={`px-5 py-2 rounded text-sm border transition-all cursor-pointer ${
+            invert
+              ? "bg-green-400 text-black border-green-300 font-bold"
+              : "bg-transparent text-green-700 border-green-800 hover:border-green-600 hover:text-green-500"
+          }`}
+        >
+          [ INVERT ]
+        </button>
+
         {/* TODO #4: Tema */}
         {mounted && (
           <button
@@ -350,7 +372,7 @@ export default function AsciiCamera() {
             <span className="text-green-500">
               {asciiCols}×{asciiRows}
             </span>
-            <span className={valClass}>{ASCII_COLS}×{ASCII_ROWS}</span>
+            <span className={valClass}>{asciiCols}×{asciiRows}</span>
           </span>
           {isRunning && (
             <span>
@@ -362,6 +384,10 @@ export default function AsciiCamera() {
             CHARSET:{" "}
             <span className={`font-bold ${valClass}`}>STANDARD</span>
           </span>
+          {/* TODO #1: indicador visual del modo activo */}
+          {invert && (
+            <span className="text-yellow-500 font-bold">⬛ INVERTED</span>
+          )}
         </div>
 
         {isRunning && (
