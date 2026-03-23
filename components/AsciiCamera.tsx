@@ -3,12 +3,6 @@
 // ============================================================
 // AsciiCamera — Componente principal de la cámara ASCII
 // ============================================================
-// Utiliza:
-//   - useRef para referenciar el <video> y el <canvas> del DOM
-//   - useEffect para iniciar/limpiar el stream de la cámara
-//   - requestAnimationFrame para el loop de renderizado
-//   - Canvas API para leer píxeles y convertirlos a ASCII
-// ============================================================
 
 import { useRef, useEffect, useState, useCallback } from "react";
 import { imageDataToAscii, CHARSET_STANDARD } from "@/lib/ascii";
@@ -18,13 +12,11 @@ const ASCII_COLS = 120;
 const ASCII_ROWS = 60;
 
 // ============================================================
-// TODO #1 — EQUIPO 1: Filtro de inversion de colores
+// TODO #1 — EQUIPO 1: Filtro de inversion de colores - HECHO
 // ============================================================
-// Implementar una función que, antes de calcular el brillo,
-// invierta los valores RGB de cada pixel: r = 255-r, g = 255-g, b = 255-b.
-// Agregar un boton "[ INVERT ]" en los controles que active esta opcion.
-// Pista: modificar la funcion imageDataToAscii en lib/ascii.ts para
-// aceptar un parametro `invert: boolean`.
+// Se agrego estado `invert` y se pasa a imageDataToAscii.
+// El botón [ INVERT ] aparece en los controles y cambia de
+// apariencia según si el filtro está activo o no.
 // ============================================================
 
 // ============================================================
@@ -32,36 +24,27 @@ const ASCII_ROWS = 60;
 // ============================================================
 // Agregar un slider que controle ASCII_COLS y ASCII_ROWS
 // (por ejemplo, entre 40x20 y 200x100).
-// El texto se volverá más o menos detallado según el valor.
 // Pista: convertir ASCII_COLS y ASCII_ROWS a estado con useState.
 // ============================================================
 
 // ============================================================
 // TODO #3 — EQUIPO 3: Guardar captura como imagen PNG
 // ============================================================
-// Implementar un boton "[ SAVE PNG ]" que:
-//   1. Cree un <canvas> temporal del tamaño del texto ASCII
-//   2. Renderice el texto ASCII caracter por caracter sobre el canvas
-//   3. Llame a canvas.toDataURL("image/png") y dispare una descarga
-// Pista: usar un elemento <a> con `download` attribute para la descarga.
+// Implementar un boton "[ SAVE PNG ]" que cree un <canvas> temporal,
+// renderice el texto ASCII y lo descargue.
 // ============================================================
 
 // ============================================================
 // TODO #4 — EQUIPO 4: Modo oscuro / claro
 // ============================================================
-// El diseño actual es siempre fondo negro + texto verde (modo "terminal").
-// Agregar un toggle que cambie entre:
-//   - Modo terminal: bg-black, text-green-400
-//   - Modo claro: bg-white, text-gray-900
-// Pista: usar un estado `theme` y aplicar clases condicionales.
+// Toggle entre modo terminal (bg-black, text-green-400)
+// y modo claro (bg-white, text-gray-900).
 // ============================================================
 
 // ============================================================
 // TODO #5 — EQUIPO 6: Selector de charset
 // ============================================================
-// Ver lib/ascii.ts para la descripcion completa.
-// Aqui agregar un <select> o botones que cambien el charset
-// y pasen la nueva variable a imageDataToAscii.
+// Agregar un <select> o botones para cambiar el charset.
 // ============================================================
 
 export default function AsciiCamera() {
@@ -75,6 +58,9 @@ export default function AsciiCamera() {
   const [error, setError] = useState<string>("");
   const [fps, setFps] = useState(0);
   const lastFrameTime = useRef(Date.now());
+
+  // TODO #1: estado para el filtro de inversión
+  const [invert, setInvert] = useState(false);
 
   // Funcion principal del loop de renderizado
   const renderFrame = useCallback(() => {
@@ -95,8 +81,9 @@ export default function AsciiCamera() {
     ctx.restore();
 
     // Leemos los pixeles y convertimos a ASCII
+    // TODO #1: se pasa `invert` como quinto argumento
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const ascii = imageDataToAscii(imageData, ASCII_COLS, ASCII_ROWS, CHARSET_STANDARD);
+    const ascii = imageDataToAscii(imageData, ASCII_COLS, ASCII_ROWS, CHARSET_STANDARD, invert);
     setAsciiOutput(ascii);
 
     // Calcular FPS
@@ -106,7 +93,7 @@ export default function AsciiCamera() {
     setFps(Math.round(1000 / delta));
 
     animFrameRef.current = requestAnimationFrame(renderFrame);
-  }, []);
+  }, [invert]); // <-- invert en dependencias para que el loop use el valor actualizado
 
   // Iniciar la camara
   const startCamera = useCallback(async () => {
@@ -148,6 +135,15 @@ export default function AsciiCamera() {
     setAsciiOutput("");
     setFps(0);
   }, []);
+
+  // Reiniciar el loop cuando cambia `invert` mientras la cámara está activa
+  useEffect(() => {
+    if (!isRunning) return;
+    if (animFrameRef.current) {
+      cancelAnimationFrame(animFrameRef.current);
+    }
+    animFrameRef.current = requestAnimationFrame(renderFrame);
+  }, [invert, isRunning, renderFrame]);
 
   // Cleanup al desmontar
   useEffect(() => {
@@ -191,6 +187,18 @@ export default function AsciiCamera() {
           </button>
         )}
 
+        {/* TODO #1: Botón INVERT */}
+        <button
+          onClick={() => setInvert((v) => !v)}
+          className={`px-5 py-2 rounded text-sm border transition-all cursor-pointer ${
+            invert
+              ? "bg-green-400 text-black border-green-300 font-bold"
+              : "bg-transparent text-green-700 border-green-800 hover:border-green-600 hover:text-green-500"
+          }`}
+        >
+          [ INVERT ]
+        </button>
+
         {/* Indicadores de estado */}
         <div className="flex items-center gap-3 text-xs text-green-700">
           <span>
@@ -209,6 +217,10 @@ export default function AsciiCamera() {
             CHARSET:{" "}
             <span className="text-green-500 font-bold">STANDARD</span>
           </span>
+          {/* TODO #1: indicador visual del modo activo */}
+          {invert && (
+            <span className="text-yellow-500 font-bold">⬛ INVERTED</span>
+          )}
         </div>
 
         {isRunning && (
