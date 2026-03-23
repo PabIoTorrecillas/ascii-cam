@@ -12,6 +12,12 @@
 // ============================================================
 
 import { useState, useRef } from "react";
+import { 
+  CHARSET_STANDARD, 
+  CHARSET_BLOCKS, 
+  CHARSET_MINIMAL, 
+  CHARSET_DENSE 
+} from "@/lib/ascii";
 
 interface ApiResponse {
   ascii: string;
@@ -30,6 +36,7 @@ export default function UploadConverter() {
   const [preview, setPreview] = useState<string>("");
   const [cols, setCols] = useState(80);
   const [rows, setRows] = useState(40);
+  const [charset, setCharset] = useState(CHARSET_STANDARD);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = async (file: File) => {
@@ -62,7 +69,7 @@ export default function UploadConverter() {
       const response = await fetch("/api/convert", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64, cols, rows }),
+        body: JSON.stringify({ imageBase64, cols, rows, charset }),
       });
 
       if (!response.ok) {
@@ -114,21 +121,22 @@ export default function UploadConverter() {
           {/* Parametros */}
           <div className="border border-green-900 rounded p-3 space-y-3 text-xs">
             <p className="text-green-600 font-bold">PARAMETROS</p>
-            <label className="flex flex-col gap-1 text-green-700">
-              Columnas: <span className="text-green-400">{cols}</span>
-              <input
-                type="range" min={30} max={150} value={cols}
-                onChange={e => setCols(Number(e.target.value))}
-                className="accent-green-500"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-green-700">
-              Filas: <span className="text-green-400">{rows}</span>
-              <input
-                type="range" min={15} max={80} value={rows}
-                onChange={e => setRows(Number(e.target.value))}
-                className="accent-green-500"
-              />
+            
+            {/* ... aquí están los inputs de Columnas y Filas ... */}
+
+            {/* Agrega este nuevo bloque para el selector */}
+            <label className="flex flex-col gap-1 text-green-700 mt-2">
+              Charset:
+              <select
+                value={charset}
+                onChange={e => setCharset(e.target.value)}
+                className="bg-green-950 text-green-300 border border-green-700 rounded px-2 py-1 text-xs cursor-pointer outline-none focus:border-green-400 mt-1"
+              >
+                <option value={CHARSET_STANDARD}>STANDARD</option>
+                <option value={CHARSET_BLOCKS}>BLOCKS</option>
+                <option value={CHARSET_MINIMAL}>MINIMAL</option>
+                <option value={CHARSET_DENSE}>DENSE</option>
+              </select>
             </label>
           </div>
 
@@ -166,6 +174,7 @@ export default function UploadConverter() {
               <p className="text-green-600 font-bold">RESPONSE</p>
               <p>cols: <span className="text-green-500">{apiResponse.cols}</span></p>
               <p>rows: <span className="text-green-500">{apiResponse.rows}</span></p>
+              <p>charset: <span className="text-green-500">{apiResponse.charset}</span></p>
               <p>tiempo: <span className="text-green-500">{apiResponse.processingTimeMs}ms</span></p>
               <p>timestamp: <span className="text-green-500">{new Date(apiResponse.timestamp).toLocaleTimeString()}</span></p>
             </div>

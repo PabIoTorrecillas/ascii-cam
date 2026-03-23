@@ -7,6 +7,9 @@
 // ============================================================
 
 export const CHARSET_STANDARD = " .`'^\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
+export const CHARSET_BLOCKS  = ' ░▒▓█';
+export const CHARSET_MINIMAL = ' .:-=';
+export const CHARSET_DENSE   = '$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/|()1{}[]?-_+~<>i!lI;:,"^\`\'. ';
 
 // TODO #5 — EQUIPO 5: Selector de charset
 // Implementar un selector que permita al usuario elegir entre
