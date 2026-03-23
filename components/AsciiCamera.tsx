@@ -197,6 +197,27 @@ export default function AsciiCamera() {
           </button>
         )}
 
+        {/* TODO #2: Density Slider */}
+        <div className="flex items-center gap-2 border border-green-900 bg-black px-3 py-1.5 rounded">
+          <label htmlFor="density-slider" className="text-xs text-green-600 font-bold">
+            DENSITY:
+          </label>
+          <input
+            id="density-slider"
+            type="range"
+            min="40"
+            max="200"
+            step="10"
+            value={asciiCols}
+            onChange={(e) => {
+              const val = Number(e.target.value);
+              setAsciiCols(val);       // Updates the UI
+              colsRef.current = val;   // Updates the render loop
+            }}
+            className="w-24 cursor-pointer accent-green-500"
+          />
+        </div>
+
         {/* Indicadores de estado */}
         <div className="flex items-center gap-3 text-xs text-green-700">
           <span>
