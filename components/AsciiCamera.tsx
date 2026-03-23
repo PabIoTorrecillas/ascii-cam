@@ -222,7 +222,7 @@ export default function AsciiCamera() {
           )}
           className={`px-5 py-2 rounded text-sm transition-all cursor-pointer border ${btnBase}`}
         >
-          {theme  === "terminal" ? "☀ LIGHT" : theme === "light" ? "◈ AMBER" : "◉ DARK"}
+          {theme === "terminal" ? "◉ DARK" : theme === "light" ? "☀ LIGHT" : "◈ AMBER"}
         </button>
   
         {/* Indicadores de estado */}
