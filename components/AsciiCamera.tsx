@@ -13,10 +13,6 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { imageDataToAscii, CHARSET_STANDARD } from "@/lib/ascii";
 
-// Resolucion del output ASCII
-const ASCII_COLS = 120;
-const ASCII_ROWS = 60;
-
 // ============================================================
 // TODO #1 — EQUIPO 1: Filtro de inversion de colores
 // ============================================================
@@ -75,6 +71,13 @@ export default function AsciiCamera() {
   const [error, setError] = useState<string>("");
   const [fps, setFps] = useState(0);
   const lastFrameTime = useRef(Date.now());
+
+  // --- TODO #2: ESTADOS Y REFERENCIAS PARA RESOLUCIÓN ---
+  const [asciiCols, setAsciiCols] = useState<number>(120);
+  const asciiRows = Math.floor(asciiCols / 2); // Mantiene la proporción 2:1
+  
+  // Usamos una referencia para el loop de animación (evita stale closures)
+  const colsRef = useRef<number>(120);
 
   // Funcion principal del loop de renderizado
   const renderFrame = useCallback(() => {
