@@ -11,7 +11,15 @@
 // ============================================================
 
 import { useRef, useEffect, useState, useCallback } from "react";
-import { imageDataToAscii, CHARSET_STANDARD } from "@/lib/ascii";
+import { 
+  imageDataToAscii, 
+  CHARSET_STANDARD, 
+  CHARSET_BLOCKS, 
+  CHARSET_MINIMAL, 
+  CHARSET_DENSE 
+} from "@/lib/ascii";
+const ASCII_COLS = 120;
+const ASCII_ROWS = 60;
 
 // ============================================================
 // TODO #1 — EQUIPO 1: Filtro de inversion de colores
@@ -71,6 +79,7 @@ export default function AsciiCamera() {
   const [error, setError] = useState<string>("");
   const [fps, setFps] = useState(0);
   const [theme, setTheme] = useState<"terminal" | "light" | "amber">("terminal");
+  const charsetRef = useRef<string>(CHARSET_STANDARD);
   const lastFrameTime = useRef(Date.now());
   const [mounted, setMounted] = useState(false);
 
@@ -104,7 +113,7 @@ export default function AsciiCamera() {
     const currentRows = Math.floor(currentCols / 2);
     
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const ascii = imageDataToAscii(imageData, currentCols, currentRows, CHARSET_STANDARD);
+    const ascii = imageDataToAscii(imageData, ASCII_COLS, ASCII_ROWS, charsetRef.current);
     setAsciiOutput(ascii);
 
     // Calcular FPS
@@ -358,10 +367,18 @@ export default function AsciiCamera() {
               <span className={valClass}>{fps}</span>
             </span>
           )}
-          <span>
-            CHARSET:{" "}
-            <span className={`font-bold ${valClass}`}>STANDARD</span>
-          </span>
+          <div className="flex items-center gap-2">
+            <span>CHARSET:</span>
+            <select
+              onChange={(e) => (charsetRef.current = e.target.value)}
+              className="bg-green-950 text-green-300 border border-green-700 rounded px-2 py-0.5 text-xs cursor-pointer outline-none focus:border-green-400"
+            >
+              <option value={CHARSET_STANDARD}>STANDARD</option>
+              <option value={CHARSET_BLOCKS}>BLOCKS</option>
+              <option value={CHARSET_MINIMAL}>MINIMAL</option>
+              <option value={CHARSET_DENSE}>DENSE</option>
+            </select>
+          </div>
         </div>
 
         {isRunning && (
