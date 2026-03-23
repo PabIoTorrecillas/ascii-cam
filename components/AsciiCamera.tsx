@@ -74,7 +74,9 @@ export default function AsciiCamera() {
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string>("");
   const [fps, setFps] = useState(0);
+  const [theme, setTheme] = useState<"terminal" | "light" | "amber">("terminal");
   const lastFrameTime = useRef(Date.now());
+  const [mounted, setMounted] = useState(false);
 
   // Funcion principal del loop de renderizado
   const renderFrame = useCallback(() => {
@@ -239,8 +241,30 @@ export default function AsciiCamera() {
     };
   }, [stopCamera]);
 
+  useEffect(() => { setMounted(true); }, []);
+
+  const isTerminal = theme === "terminal";
+  const isAmber    = theme === "amber";
+
+  const themeClass = isTerminal ? "bg-black text-green-400"
+    : isAmber      ? "bg-black text-amber-400"
+    :                "bg-white text-gray-900";
+
+  const borderClass = isTerminal ? "border-green-900"
+    : isAmber       ? "border-amber-900"
+    :                 "border-gray-300";
+
+  const btnBase = isTerminal
+    ? "border border-green-700 bg-green-950 text-green-300 hover:bg-green-900"
+    : isAmber
+    ? "border border-amber-700 bg-amber-950 text-amber-300 hover:bg-amber-900"
+    : "border border-gray-400 bg-gray-100 text-gray-800 hover:bg-gray-200";
+
+  const labelClass = isTerminal ? "text-green-700" : isAmber ? "text-amber-700" : "text-gray-500";
+  const valClass   = isTerminal ? "text-green-500" : isAmber ? "text-amber-400" : "text-gray-700";
+  
   return (
-    <div className="flex flex-col flex-1 p-4 gap-4">
+    <div className={`flex flex-col flex-1 p-4 gap-4 ${themeClass} transition-colors duration-300`}>
       {/* Canvas oculto para procesar frames */}
       <canvas
         ref={canvasRef}
@@ -274,6 +298,16 @@ export default function AsciiCamera() {
           </button>
         )}
 
+        {/* TODO #4: Tema */}
+        {mounted && (
+          <button
+            onClick={() => setTheme(t => t === "terminal" ? "light" : t === "light" ? "amber" : "terminal")}
+            className={`px-3 py-1.5 rounded transition-all cursor-pointer ${btnBase}`}
+          >
+            {theme === "terminal" ? "◉ DARK" : theme === "light" ? "☀ LIGHT" : "◈ AMBER"}
+          </button>
+        )}
+  
         {isRunning && (
           <button
             onClick={handleSavePng}
@@ -284,29 +318,27 @@ export default function AsciiCamera() {
         )}
 
         {/* Indicadores de estado */}
-        <div className="flex items-center gap-3 text-xs text-green-700">
+        <div className={`flex items-center gap-3 text-xs ${labelClass}`}>
           <span>
             RES:{" "}
-            <span className="text-green-500">
-              {ASCII_COLS}×{ASCII_ROWS}
-            </span>
+            <span className={valClass}>{ASCII_COLS}×{ASCII_ROWS}</span>
           </span>
           {isRunning && (
             <span>
               FPS:{" "}
-              <span className="text-green-400">{fps}</span>
+              <span className={valClass}>{fps}</span>
             </span>
           )}
           <span>
             CHARSET:{" "}
-            <span className="text-green-500 font-bold">STANDARD</span>
+            <span className={`font-bold ${valClass}`}>STANDARD</span>
           </span>
         </div>
 
         {isRunning && (
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse inline-block" />
-            <span className="text-xs text-green-600">LIVE</span>
+            <span className={`text-xs ${labelClass}`}>LIVE</span>
           </div>
         )}
       </div>
@@ -319,7 +351,7 @@ export default function AsciiCamera() {
       )}
 
       {/* ASCII Output */}
-      <div className="flex-1 bg-black border border-green-900 rounded overflow-auto relative">
+      <div className={`flex-1 bg-black border rounded overflow-auto relative ${borderClass}`}>
         {!isRunning && !asciiOutput ? (
           <div className="flex items-center justify-center h-full min-h-[300px] text-green-800 text-sm">
             <div className="text-center">
@@ -329,9 +361,12 @@ export default function AsciiCamera() {
             </div>
           </div>
         ) : (
-          <pre className="ascii-output p-2 text-green-400 leading-none">
-            {asciiOutput}
-          </pre>
+      <pre
+        className="ascii-output p-2 leading-none"
+        style={{ color: isTerminal ? "#4ade80" : isAmber ? "#fbbf24" : "#111111" }}
+      >
+        {asciiOutput}
+      </pre>
         )}
       </div>
 
